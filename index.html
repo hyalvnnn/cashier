@@ -1,0 +1,2230 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cinze Restaurant POS</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-2: #243248;
+      --border: #334155;
+      --gold: #d9b45b;
+      --cyan: #35d5d0;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --danger: #f87171;
+      --success: #4ade80;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        linear-gradient(rgba(53, 213, 208, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(53, 213, 208, .035) 1px, transparent 1px),
+        var(--bg);
+      background-size: 34px 34px;
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 24px;
+      background: rgba(15, 23, 42, .94);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      color: var(--gold);
+      border: 1px solid rgba(217, 180, 91, .45);
+      border-radius: 14px;
+      background: linear-gradient(120deg, rgba(217, 180, 91, .16), rgba(53, 213, 208, .08));
+      font-size: 22px;
+    }
+
+    .brand-title {
+      margin: 0;
+      color: var(--gold);
+      font-family: Georgia, serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .brand-subtitle {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .live-clock {
+      color: var(--cyan);
+      font-family: monospace;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(2, 6, 23, .35);
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan);
+    }
+
+    .page {
+      width: min(1600px, 100%);
+      margin: 0 auto;
+      padding: 26px 24px 60px;
+    }
+
+    .intro {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: Georgia, serif;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      color: var(--gold);
+      font-size: clamp(32px, 5vw, 58px);
+      line-height: 1.02;
+    }
+
+    .intro-copy {
+      max-width: 720px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+      gap: 8px;
+      min-width: 350px;
+    }
+
+    .summary-card {
+      padding: 13px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(2, 6, 23, .35);
+    }
+
+    .summary-label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .summary-value {
+      color: var(--text);
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .panel {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(30, 41, 59, .86);
+      box-shadow: 0 20px 50px rgba(2, 6, 23, .18);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .panel-heading h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 26px;
+    }
+
+    .panel-heading p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .search-row {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .search-row input {
+      width: 100%;
+      padding: 13px 15px 13px 42px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      background: rgba(2, 6, 23, .35);
+    }
+
+    .search-row input:focus,
+    input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(217, 180, 91, .12);
+    }
+
+    .search-icon {
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      color: var(--muted);
+      transform: translateY(-50%);
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 18px;
+    }
+
+    .category-tab,
+    .button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(2, 6, 23, .28);
+      color: var(--muted);
+      transition: .18s ease;
+    }
+
+    .category-tab {
+      flex: 0 0 auto;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .category-tab:hover,
+    .button:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .category-tab.active {
+      border-color: var(--gold);
+      background: var(--gold);
+      color: var(--bg);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 15px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .button.gold {
+      border-color: var(--gold);
+      background: var(--gold);
+      color: var(--bg);
+    }
+
+    .button.gold:hover {
+      background: #e7c97d;
+      color: var(--bg);
+    }
+
+    .button.cyan {
+      border-color: rgba(53, 213, 208, .5);
+      color: var(--cyan);
+    }
+
+    .button.danger {
+      color: var(--danger);
+    }
+
+    .button.full {
+      width: 100%;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .menu-card {
+      display: flex;
+      min-height: 150px;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(2, 6, 23, .2);
+      transition: .18s ease;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(217, 180, 91, .6);
+      background: var(--surface-2);
+    }
+
+    .menu-category {
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .menu-name {
+      margin: 22px 0 16px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .menu-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .price {
+      color: var(--gold);
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .add-button {
+      padding: 8px 10px;
+      border: 1px solid rgba(217, 180, 91, .35);
+      border-radius: 8px;
+      background: rgba(217, 180, 91, .1);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .add-button:hover {
+      background: var(--gold);
+      color: var(--bg);
+    }
+
+    .checkout-panel {
+      position: sticky;
+      top: 86px;
+      overflow: hidden;
+      border-color: rgba(217, 180, 91, .35);
+    }
+
+    .checkout-top {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(120deg, rgba(217, 180, 91, .13), rgba(53, 213, 208, .05));
+    }
+
+    .checkout-title-row {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .checkout-title {
+      margin: 0;
+      font-size: 27px;
+    }
+
+    .bill-badge {
+      padding: 8px 10px;
+      color: var(--gold);
+      border: 1px solid rgba(217, 180, 91, .45);
+      border-radius: 10px;
+      background: rgba(217, 180, 91, .1);
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    input,
+    .date-field {
+      width: 100%;
+      min-height: 40px;
+      padding: 10px 12px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      outline: none;
+      background: rgba(2, 6, 23, .32);
+    }
+
+    .date-field {
+      display: flex;
+      align-items: center;
+      color: var(--muted);
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    .checkout-content {
+      padding: 20px;
+    }
+
+    .cart {
+      min-height: 120px;
+      margin-bottom: 18px;
+    }
+
+    .empty-cart,
+    .empty-state {
+      display: flex;
+      min-height: 120px;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 20px;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    .empty-cart strong,
+    .empty-state strong {
+      margin-bottom: 5px;
+      color: var(--text);
+    }
+
+    .cart-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, .6);
+    }
+
+    .cart-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .cart-name {
+      overflow: hidden;
+      margin: 0;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cart-unit {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-family: monospace;
+      font-size: 10px;
+    }
+
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(2, 6, 23, .35);
+    }
+
+    .quantity-controls button {
+      display: grid;
+      width: 23px;
+      height: 23px;
+      place-items: center;
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .quantity-controls button:hover {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .quantity {
+      width: 20px;
+      color: var(--text);
+      font-family: monospace;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .cart-total {
+      width: 85px;
+      color: var(--text);
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .totals {
+      padding: 15px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .total-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .total-line span:last-child {
+      color: var(--text);
+      font-family: monospace;
+    }
+
+    .grand-total {
+      padding-top: 13px;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .grand-total span:last-child {
+      color: var(--gold);
+      font-size: 20px;
+    }
+
+    .section-label {
+      display: block;
+      margin: 18px 0 10px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .payment-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .payment-button {
+      min-height: 62px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: rgba(2, 6, 23, .3);
+      color: var(--muted);
+      text-align: left;
+    }
+
+    .payment-button:hover {
+      border-color: var(--cyan);
+      color: var(--text);
+    }
+
+    .payment-button.active {
+      border-color: var(--cyan);
+      background: rgba(53, 213, 208, .1);
+      color: var(--cyan);
+    }
+
+    .payment-name {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .payment-fee {
+      display: block;
+      font-family: monospace;
+      font-size: 9px;
+      opacity: .7;
+    }
+
+    .cash-box,
+    .fee-box,
+    .custom-box {
+      padding: 14px;
+      margin-top: 14px;
+      border: 1px solid rgba(53, 213, 208, .25);
+      border-radius: 13px;
+      background: rgba(53, 213, 208, .05);
+    }
+
+    .cash-result {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .cash-result strong {
+      color: var(--cyan);
+      font-family: monospace;
+    }
+
+    .cash-result.short strong {
+      color: var(--danger);
+    }
+
+    .fee-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .fee-box strong {
+      color: var(--text);
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    .complete-button {
+      width: 100%;
+      margin-top: 17px;
+      padding: 14px;
+      border: 1px solid var(--gold);
+      border-radius: 10px;
+      background: var(--gold);
+      color: var(--bg);
+      font-weight: 800;
+    }
+
+    .complete-button:hover {
+      background: #e7c97d;
+    }
+
+    .complete-button:disabled {
+      cursor: not-allowed;
+      opacity: .4;
+    }
+
+    .receipt-actions {
+      padding-top: 17px;
+      margin-top: 17px;
+      border-top: 1px solid var(--border);
+    }
+
+    .receipt-actions p {
+      margin: 0 0 10px;
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .history-search {
+      margin-bottom: 14px;
+    }
+
+    .history-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 13px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(51, 65, 85, .75);
+      border-radius: 12px;
+      background: rgba(2, 6, 23, .25);
+      color: var(--text);
+      text-align: left;
+    }
+
+    .history-row:hover {
+      border-color: var(--border);
+      background: rgba(15, 23, 42, .8);
+    }
+
+    .history-icon {
+      display: grid;
+      width: 35px;
+      height: 35px;
+      flex: 0 0 auto;
+      place-items: center;
+      color: var(--gold);
+      border-radius: 10px;
+      background: rgba(217, 180, 91, .12);
+    }
+
+    .history-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .history-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .history-main strong {
+      font-family: monospace;
+    }
+
+    .history-main span {
+      color: var(--muted);
+    }
+
+    .history-items {
+      overflow: hidden;
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-total {
+      color: var(--gold);
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .history-payment {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+      text-align: right;
+    }
+
+    .custom-form {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr .6fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .receipt-section {
+      margin-top: 26px;
+    }
+
+    .receipt-section-heading {
+      margin-bottom: 12px;
+      color: var(--cyan);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .receipt {
+      width: 320px;
+      max-width: 100%;
+      padding: 20px;
+      margin: 0 auto;
+      color: #111827;
+      background: #fff;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, .4);
+    }
+
+    .receipt-header {
+      text-align: center;
+    }
+
+    .receipt-logo {
+      display: block;
+      width: auto;
+      max-width: 180px;
+      max-height: 70px;
+      margin: 0 auto 10px;
+    }
+
+    .receipt-header strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .receipt-header p {
+      margin: 5px 0 0;
+      font-size: 9px;
+      line-height: 1.5;
+    }
+
+    .receipt-divider {
+      margin: 12px 0;
+      border-top: 1px dashed #6b7280;
+    }
+
+    .receipt-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      font-size: 10px;
+    }
+
+    .receipt-info span:nth-child(even) {
+      text-align: right;
+    }
+
+    .receipt-item {
+      margin: 10px 0;
+    }
+
+    .receipt-item-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .receipt-item-main span:first-child {
+      max-width: 70%;
+    }
+
+    .receipt-item-detail {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 4px;
+      color: #4b5563;
+      font-size: 9px;
+    }
+
+    .receipt-total-line {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+    }
+
+    .receipt-grand-total {
+      padding-top: 7px;
+      margin-top: 8px;
+      border-top: 1px solid #9ca3af;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .receipt-footer {
+      font-size: 9px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 20px;
+      margin-top: 30px;
+      border-top: 1px solid rgba(51, 65, 85, .6);
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      top: 80px;
+      z-index: 50;
+      max-width: 330px;
+      padding: 14px 16px;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #172337;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, .3);
+      font-size: 13px;
+    }
+
+    .toast.success {
+      border-color: rgba(74, 222, 128, .45);
+    }
+
+    .toast.error {
+      border-color: rgba(248, 113, 113, .45);
+    }
+
+    @media (max-width: 1100px) {
+      .intro {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .summary {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .checkout-panel {
+        position: relative;
+        top: 0;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app-header {
+        padding: 12px 16px;
+      }
+
+      .live-clock {
+        display: none;
+      }
+
+      .page {
+        padding: 20px 14px 45px;
+      }
+
+      .summary {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .summary-card {
+        padding: 10px;
+      }
+
+      .summary-label {
+        font-size: 8px;
+      }
+
+      .summary-value {
+        font-size: 11px;
+      }
+
+      .panel,
+      .checkout-top,
+      .checkout-content {
+        padding: 15px;
+      }
+
+      .menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .custom-form {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .custom-form .field:first-child {
+        grid-column: span 2;
+      }
+
+      .footer {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 440px) {
+      .brand-title {
+        font-size: 16px;
+      }
+
+      .brand-subtitle {
+        font-size: 8px;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+      }
+
+      .summary {
+        gap: 5px;
+      }
+
+      .summary-label {
+        letter-spacing: .5px;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .payment-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .cart-total {
+        width: 72px;
+        font-size: 10px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: 58mm auto;
+        margin: 0;
+      }
+
+      body {
+        min-width: 0;
+        background: #fff;
+      }
+
+      body * {
+        visibility: hidden;
+      }
+
+      .receipt-section,
+      .receipt-section * {
+        visibility: visible;
+      }
+
+      .receipt-section {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 58mm;
+        margin: 0;
+      }
+
+      .receipt-section-heading {
+        display: none;
+      }
+
+      .receipt {
+        width: 54mm;
+        max-width: 54mm;
+        padding: 3mm;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  <div id="toast-container"></div>
+
+  <script>
+    const STORAGE_KEY = "cinzeRestoPOS_v1";
+    const TAX_RATE = 0.11;
+    const SERVICE_RATE = 0.10;
+    const RECEIPT_LOGO = "https://i.imgur.com/MdmoZBD.png";
+
+    const MENU = [
+      ["APPETIZERS", "Mushroom Soup", 60000],
+      ["APPETIZERS", "Chicken Karaage", 50000],
+      ["APPETIZERS", "French Fries", 45000],
+      ["APPETIZERS", "Garlic Bread", 40000],
+
+      ["MAIN COURSES", "Slow Cooked Beef", 110000],
+      ["MAIN COURSES", "Grilled Chicken Breast", 100000],
+      ["MAIN COURSES", "Chicken Parmigiana", 100000],
+      ["MAIN COURSES", "Chicken Satay with Peanut Sauce", 90000],
+      ["MAIN COURSES", "Chicken Schnitzel", 90000],
+      ["MAIN COURSES", "Fried Noodles", 65000],
+      ["MAIN COURSES", "Fried Rice", 65000],
+      ["MAIN COURSES", "Bruschetta", 60000],
+      ["MAIN COURSES", "White Rice", 10000],
+
+      ["PIZZA", "Chicken Creamy Mushroom", 120000],
+      ["PIZZA", "Meat Lover", 120000],
+      ["PIZZA", "Beef Slice Salami", 120000],
+      ["PIZZA", "Cheese Lover", 100000],
+      ["PIZZA", "Margherita", 100000],
+
+      ["PASTA", "Creamy Mushroom Pasta", 90000],
+      ["PASTA", "Chicken Aglio e' Olio", 90000],
+      ["PASTA", "Beef Slice Pasta", 90000],
+      ["PASTA", "Carbonara", 90000],
+      ["PASTA", "Chicken Pesto Pasta", 90000],
+
+      ["DRINKS", "Small Beer", 40000],
+      ["DRINKS", "Cappuccino", 35000],
+      ["DRINKS", "Latte", 35000],
+      ["DRINKS", "Americano", 35000],
+      ["DRINKS", "Flat White", 35000],
+      ["DRINKS", "Mocha", 35000],
+      ["DRINKS", "Hot Chocolate", 35000],
+      ["DRINKS", "Tea Pot", 30000],
+      ["DRINKS", "Espresso", 30000],
+      ["DRINKS", "Seasonal Fresh Juice", 25000],
+      ["DRINKS", "Soft Drink", 20000]
+    ].map((item, index) => ({
+      id: `menu-${index + 1}`,
+      category: item[0],
+      name: item[1],
+      price: item[2]
+    }));
+
+    const PAYMENTS = [
+      {
+        id: "cash",
+        name: "Cash / Tunai",
+        shortName: "Cash",
+        fee: 0
+      },
+      {
+        id: "qris",
+        name: "QR / QRIS",
+        shortName: "QRIS",
+        fee: 0
+      },
+      {
+        id: "debit_bni",
+        name: "Debit BNI / Bank Lokal",
+        shortName: "Debit BNI",
+        fee: 0.0015
+      },
+      {
+        id: "cc_visa_mc",
+        name: "Credit Card Visa / Mastercard",
+        shortName: "Visa / MC",
+        fee: 0.0165
+      },
+      {
+        id: "cc_jcb_amex",
+        name: "Credit Card JCB / Amex",
+        shortName: "JCB / Amex",
+        fee: 0.0165
+      }
+    ];
+
+    const state = {
+      transactions: loadTransactions(),
+      cart: [],
+      category: "ALL",
+      menuSearch: "",
+      historySearch: "",
+      room: "Walk-in",
+      payment: "cash",
+      cashReceived: "",
+      selectedReceipt: null,
+      customOpen: false
+    };
+
+    function loadTransactions() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+
+        const parsed = JSON.parse(raw);
+
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+
+        if (Array.isArray(parsed.transactions)) {
+          return parsed.transactions;
+        }
+
+        return [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveTransactions() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+    }
+
+    function today() {
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatMoney(value) {
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+      }).format(Math.round(value || 0));
+    }
+
+    function formatDateTime(value) {
+      return new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(value));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function createId() {
+      if (crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+
+      return `${Date.now()}-${Math.random()}`;
+    }
+
+    function paymentMethod() {
+      return PAYMENTS.find((method) => method.id === state.payment) || PAYMENTS[0];
+    }
+
+    function getBillNumber() {
+      const currentDate = today();
+
+      const dailyBills = state.transactions
+        .filter((transaction) => transaction.date === currentDate)
+        .map((transaction) => Number.parseInt(transaction.billNo, 10))
+        .filter(Number.isFinite);
+
+      const next = Math.max(9600, ...dailyBills) + 1;
+      return String(next).padStart(5, "0");
+    }
+
+    function calculateItem(item) {
+      const baseTotal = item.price * item.quantity;
+      const tax = baseTotal * TAX_RATE;
+      const service = baseTotal * SERVICE_RATE;
+
+      return {
+        ...item,
+        baseTotal,
+        tax,
+        service,
+        total: baseTotal + tax + service
+      };
+    }
+
+    function calculateTotals() {
+      const items = state.cart.map(calculateItem);
+
+      const subtotal = items.reduce((sum, item) => sum + item.baseTotal, 0);
+      const tax = items.reduce((sum, item) => sum + item.tax, 0);
+      const service = items.reduce((sum, item) => sum + item.service, 0);
+      const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
+
+      const method = paymentMethod();
+      const feeCharge = grandTotal * method.fee;
+      const totalPayment = grandTotal - feeCharge;
+      const received = Number.parseFloat(state.cashReceived) || 0;
+      const change = Math.max(0, received - totalPayment);
+
+      return {
+        items,
+        subtotal,
+        tax,
+        service,
+        grandTotal,
+        feeCharge,
+        totalPayment,
+        received,
+        change
+      };
+    }
+
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+
+      container.appendChild(toast);
+
+      setTimeout(() => toast.remove(), 3200);
+    }
+
+    function addToCart(item, quantity = 1) {
+      const existing = state.cart.find((cartItem) => cartItem.id === item.id);
+
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        state.cart.push({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          price: item.price,
+          quantity,
+          custom: Boolean(item.custom)
+        });
+      }
+
+      showToast(`${item.name} added to the bill`);
+      render();
+    }
+
+    function adjustQuantity(id, amount) {
+      const item = state.cart.find((cartItem) => cartItem.id === id);
+
+      if (!item) return;
+
+      item.quantity += amount;
+
+      if (item.quantity <= 0) {
+        state.cart = state.cart.filter((cartItem) => cartItem.id !== id);
+      }
+
+      render();
+    }
+
+    function addCustomItem() {
+      const name = document.getElementById("custom-name").value.trim();
+      const price = Number.parseFloat(document.getElementById("custom-price").value);
+      const quantity = Number.parseInt(document.getElementById("custom-quantity").value, 10);
+
+      if (!name || !Number.isFinite(price) || price <= 0 || !Number.isFinite(quantity) || quantity < 1) {
+        showToast("Enter a valid custom item name, price, and quantity", "error");
+        return;
+      }
+
+      addToCart({
+        id: `custom-${createId()}`,
+        name,
+        category: "SPECIAL REQUEST",
+        price,
+        custom: true
+      }, quantity);
+
+      state.customOpen = false;
+    }
+
+    function completeSale() {
+      const totals = calculateTotals();
+      const room = state.room.trim();
+
+      if (!state.cart.length) {
+        showToast("Add at least one item before completing the sale", "error");
+        return;
+      }
+
+      if (!room) {
+        showToast("Enter a room number or table name", "error");
+        return;
+      }
+
+      if (state.payment === "cash" && totals.received < totals.totalPayment) {
+        showToast(`Cash is short by ${formatMoney(totals.totalPayment - totals.received)}`, "error");
+        return;
+      }
+
+      const transaction = {
+        id: createId(),
+        date: today(),
+        createdAt: new Date().toISOString(),
+        roomNo: room,
+        billNo: getBillNumber(),
+        items: totals.items,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        service: totals.service,
+        grandTotal: totals.grandTotal,
+        paymentMethod: state.payment,
+        paymentLabel: paymentMethod().name,
+        deductRate: paymentMethod().fee,
+        feeCharge: totals.feeCharge,
+        totalPayment: totals.totalPayment,
+        cashReceived: state.payment === "cash" ? totals.received : null,
+        change: state.payment === "cash" ? totals.change : null
+      };
+
+      state.transactions.push(transaction);
+      state.selectedReceipt = transaction;
+      state.cart = [];
+      state.cashReceived = "";
+
+      saveTransactions();
+      showToast(`Sale #${transaction.billNo} completed`);
+      render();
+    }
+
+    function exportReport() {
+      if (!state.transactions.length) {
+        showToast("Complete a sale before exporting the report", "error");
+        return;
+      }
+
+      if (!window.XLSX) {
+        showToast("SheetJS could not be loaded from the CDN", "error");
+        return;
+      }
+
+      const rows = [];
+
+      state.transactions.forEach((transaction) => {
+        transaction.items.forEach((item) => {
+          rows.push({
+            DATE: transaction.date,
+            "ROOM NO": transaction.roomNo,
+            "BILL NO": transaction.billNo,
+            ITEMS: item.name,
+            QTY: item.quantity,
+            PRICE: item.price,
+            "TAX 11%": item.tax,
+            "SERVICE 10%": item.service,
+            TOTAL: item.total,
+            "PAYMENT METHOD": transaction.paymentLabel,
+            "DEDUCT FEE": transaction.deductRate,
+            "FEE CHARGE": transaction.feeCharge,
+            "TOTAL PAYMENT": transaction.totalPayment
+          });
+        });
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, "RESTAURANT");
+      XLSX.writeFile(
+        workbook,
+        `Cinze_Restaurant_Report_${today()}.xlsx`,
+        {
+          bookType: "xlsx",
+          compression: true
+        }
+      );
+
+      showToast("Excel revenue report downloaded");
+    }
+
+    function clearTodayHistory() {
+      const currentDate = today();
+      const currentTransactions = state.transactions.filter(
+        (transaction) => transaction.date === currentDate
+      );
+
+      if (!currentTransactions.length) {
+        showToast("Today's history is already empty");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Clear ${currentTransactions.length} bill(s) from today's history?`
+      );
+
+      if (!confirmed) return;
+
+      state.transactions = state.transactions.filter(
+        (transaction) => transaction.date !== currentDate
+      );
+
+      state.selectedReceipt = null;
+      saveTransactions();
+      showToast("Today's history cleared");
+      render();
+    }
+
+    function receiptHtml(transaction) {
+      if (!transaction) return "";
+
+      return `
+        <div class="receipt" data-testid="receipt-preview">
+          <div class="receipt-header">
+            <img
+              class="receipt-logo"
+              src="${RECEIPT_LOGO}"
+              alt="Cinze Villa and Hotspring logo"
+            />
+            <strong>VILLA CINZE HOTSPRING</strong>
+            <p>
+              Jl. Pendakian Gn. Batur, Batur Tengah,<br>
+              Kintamani, Bangli, Bali 80652
+            </p>
+          </div>
+
+          <div class="receipt-divider"></div>
+
+          <div class="receipt-info">
+            <span>DATE ${escapeHtml(transaction.date)}</span>
+            <span>${new Date(transaction.createdAt).toLocaleTimeString("en-GB")}</span>
+            <span>ROOM ${escapeHtml(transaction.roomNo)}</span>
+            <span>BILL #${escapeHtml(transaction.billNo)}</span>
+          </div>
+
+          <div class="receipt-divider"></div>
+
+          ${transaction.items.map((item) => `
+            <div class="receipt-item">
+              <div class="receipt-item-main">
+                <span>${escapeHtml(item.name)}</span>
+                <span>${formatMoney(item.total)}</span>
+              </div>
+
+              <div class="receipt-item-detail">
+                <span>
+                  ${item.quantity} × ${formatMoney(item.price)}
+                  + tax ${formatMoney(item.tax)}
+                  + svc ${formatMoney(item.service)}
+                </span>
+                <span>${formatMoney(item.baseTotal)}</span>
+              </div>
+            </div>
+          `).join("")}
+
+          <div class="receipt-divider"></div>
+
+          <div class="receipt-total-line">
+            <span>SUBTOTAL</span>
+            <span>${formatMoney(transaction.subtotal)}</span>
+          </div>
+
+          <div class="receipt-total-line">
+            <span>TAX 11%</span>
+            <span>${formatMoney(transaction.tax)}</span>
+          </div>
+
+          <div class="receipt-total-line">
+            <span>SERVICE 10%</span>
+            <span>${formatMoney(transaction.service)}</span>
+          </div>
+
+          <div class="receipt-total-line receipt-grand-total">
+            <span>GRAND TOTAL</span>
+            <span>${formatMoney(transaction.grandTotal)}</span>
+          </div>
+
+          <div class="receipt-total-line">
+            <span>${escapeHtml(transaction.paymentLabel)} FEE</span>
+            <span>-${formatMoney(transaction.feeCharge)}</span>
+          </div>
+
+          <div class="receipt-total-line">
+            <strong>NET PAYMENT</strong>
+            <strong>${formatMoney(transaction.totalPayment)}</strong>
+          </div>
+
+          ${transaction.paymentMethod === "cash" ? `
+            <div class="receipt-total-line">
+              <span>CHANGE</span>
+              <span>${formatMoney(transaction.change || 0)}</span>
+            </div>
+          ` : ""}
+
+          <div class="receipt-divider"></div>
+
+          <div class="receipt-footer">
+            <div>PUBLIC WIFI · CINZE GUEST</div>
+            <div>
+              Manager Vika +6281 236 157 554<br>
+              Reception +62 857 3536 8258
+            </div>
+            <div>Instagram @cinze_villasandhotspring</div>
+            <div style="margin-top: 8px;">Thank you for dining with us.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMenu() {
+      const search = state.menuSearch.toLowerCase().trim();
+
+      const items = MENU.filter((item) => {
+        const categoryMatch =
+          state.category === "ALL" || item.category === state.category;
+
+        const searchMatch =
+          !search || item.name.toLowerCase().includes(search);
+
+        return categoryMatch && searchMatch;
+      });
+
+      if (!items.length) {
+        return `
+          <div class="empty-state">
+            <strong>No dishes found</strong>
+            <span>Try another search or category.</span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="menu-grid">
+          ${items.map((item, index) => `
+            <article class="menu-card">
+              <div>
+                <div class="menu-category">
+                  ${escapeHtml(item.category)}
+                </div>
+
+                <div class="menu-name">
+                  ${escapeHtml(item.name)}
+                </div>
+              </div>
+
+              <div class="menu-bottom">
+                <span class="price">${formatMoney(item.price)}</span>
+                <button
+                  class="add-button"
+                  data-action="add-menu-item"
+                  data-id="${item.id}"
+                >
+                  + Add
+                </button>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderCart() {
+      if (!state.cart.length) {
+        return `
+          <div class="empty-cart">
+            <strong>Your order is waiting</strong>
+            <span>Add a dish to begin the bill.</span>
+          </div>
+        `;
+      }
+
+      return state.cart.map((item) => `
+        <div class="cart-row">
+          <div class="cart-info">
+            <p class="cart-name">${escapeHtml(item.name)}</p>
+            <p class="cart-unit">${formatMoney(item.price)} each</p>
+          </div>
+
+          <div class="quantity-controls">
+            <button
+              data-action="decrease"
+              data-id="${item.id}"
+              aria-label="Decrease quantity"
+            >−</button>
+
+            <span class="quantity">${item.quantity}</span>
+
+            <button
+              data-action="increase"
+              data-id="${item.id}"
+              aria-label="Increase quantity"
+            >+</button>
+          </div>
+
+          <div class="cart-total">
+            ${formatMoney(item.price * item.quantity * 1.21)}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderHistory() {
+      const search = state.historySearch.toLowerCase().trim();
+      const currentDate = today();
+
+      const history = state.transactions
+        .filter((transaction) => transaction.date === currentDate)
+        .filter((transaction) => {
+          if (!search) return true;
+
+          const searchable = [
+            transaction.billNo,
+            transaction.roomNo,
+            transaction.paymentLabel,
+            ...transaction.items.map((item) => item.name)
+          ].join(" ").toLowerCase();
+
+          return searchable.includes(search);
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      if (!history.length) {
+        return `
+          <div class="empty-state">
+            <strong>No completed bills yet</strong>
+            <span>Your settled transactions will appear here.</span>
+          </div>
+        `;
+      }
+
+      return history.map((transaction) => `
+        <button
+          class="history-row"
+          data-action="select-receipt"
+          data-id="${transaction.id}"
+        >
+          <div class="history-icon">▣</div>
+
+          <div class="history-info">
+            <div class="history-main">
+              <strong>#${escapeHtml(transaction.billNo)}</strong>
+              <span>${escapeHtml(transaction.roomNo)}</span>
+              <span>${formatDateTime(transaction.createdAt)}</span>
+            </div>
+
+            <p class="history-items">
+              ${transaction.items.map((item) =>
+                `${escapeHtml(item.name)} ×${item.quantity}`
+              ).join(" · ")}
+            </p>
+          </div>
+
+          <div>
+            <div class="history-total">${formatMoney(transaction.totalPayment)}</div>
+            <div class="history-payment">${escapeHtml(transaction.paymentLabel)}</div>
+          </div>
+        </button>
+      `).join("");
+    }
+
+    function render() {
+      const totals = calculateTotals();
+      const method = paymentMethod();
+      const currentDate = today();
+      const currentTransactions = state.transactions.filter(
+        (transaction) => transaction.date === currentDate
+      );
+      const revenue = currentTransactions.reduce(
+        (sum, transaction) => sum + transaction.totalPayment,
+        0
+      );
+
+      const cashShort =
+        state.payment === "cash" &&
+        totals.received < totals.totalPayment;
+
+      document.getElementById("app").innerHTML = `
+        <header class="app-header">
+          <div class="brand">
+            <div class="brand-mark">♨</div>
+            <div>
+              <p class="brand-title">Cinze Restaurant</p>
+              <p class="brand-subtitle">Hot Spring · Cashier Console</p>
+            </div>
+          </div>
+
+          <div class="live-clock" id="live-clock"></div>
+
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            Station online
+          </div>
+        </header>
+
+        <main class="page">
+          <section class="intro">
+            <div>
+              <p class="eyebrow">Service desk</p>
+              <h1>Make every stay taste memorable.</h1>
+              <p class="intro-copy">
+                A considered checkout for Cinze guests. Choose from the kitchen,
+                capture the room, and settle the bill with every charge clearly accounted for.
+              </p>
+            </div>
+
+            <div class="summary">
+              <div class="summary-card">
+                <span class="summary-label">Today's bills</span>
+                <span class="summary-value">${currentTransactions.length}</span>
+              </div>
+
+              <div class="summary-card">
+                <span class="summary-label">Net collected</span>
+                <span class="summary-value">${formatMoney(revenue)}</span>
+              </div>
+
+              <div class="summary-card">
+                <span class="summary-label">Next bill</span>
+                <span class="summary-value">#${getBillNumber()}</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="layout">
+            <section class="left-column">
+              <section class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <h2>Kitchen &amp; bar</h2>
+                    <p>Tap an item to add it to the current guest bill.</p>
+                  </div>
+
+                  <button class="button cyan" data-action="toggle-custom">
+                    ✦ Special request
+                  </button>
+                </div>
+
+                ${state.customOpen ? `
+                  <div class="custom-box">
+                    <div class="panel-heading">
+                      <div>
+                        <h3 style="margin: 0; color: var(--gold);">Custom / Special Request</h3>
+                        <p>The same 11% tax + 10% service rules apply.</p>
+                      </div>
+
+                      <button class="button" data-action="toggle-custom">Close</button>
+                    </div>
+
+                    <div class="custom-form">
+                      <div class="field">
+                        <label for="custom-name">Item name</label>
+                        <input id="custom-name" placeholder="Floating breakfast" />
+                      </div>
+
+                      <div class="field">
+                        <label for="custom-price">Base price</label>
+                        <input id="custom-price" type="number" min="0" placeholder="IDR" />
+                      </div>
+
+                      <div class="field">
+                        <label for="custom-quantity">Qty</label>
+                        <input id="custom-quantity" type="number" min="1" value="1" />
+                      </div>
+
+                      <button class="button gold" data-action="add-custom">
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                ` : ""}
+
+                <div class="search-row">
+                  <span class="search-icon">⌕</span>
+                  <input
+                    id="menu-search"
+                    value="${escapeHtml(state.menuSearch)}"
+                    placeholder="Search menu items..."
+                  />
+                </div>
+
+                <div class="category-tabs">
+                  ${[
+                    ["ALL", "All items"],
+                    ["APPETIZERS", "Starters"],
+                    ["MAIN COURSES", "Mains"],
+                    ["PIZZA", "Pizza"],
+                    ["PASTA", "Pasta"],
+                    ["DRINKS", "Drinks"]
+                  ].map(([value, label]) => `
+                    <button
+                      class="category-tab ${state.category === value ? "active" : ""}"
+                      data-action="category"
+                      data-category="${value}"
+                    >
+                      ${label}
+                    </button>
+                  `).join("")}
+                </div>
+
+                ${renderMenu()}
+              </section>
+
+              <section class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <h2>Today's activity</h2>
+                    <p>${currentTransactions.length} completed bill(s) · ${currentDate}</p>
+                  </div>
+
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="button" data-action="export">
+                      ↓ Export Excel
+                    </button>
+
+                    <button class="button danger" data-action="clear-history">
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div class="search-row history-search">
+                  <span class="search-icon">⌕</span>
+                  <input
+                    id="history-search"
+                    value="${escapeHtml(state.historySearch)}"
+                    placeholder="Search bill, room, payment, or item..."
+                  />
+                </div>
+
+                ${renderHistory()}
+              </section>
+            </section>
+
+            <aside class="panel checkout-panel">
+              <div class="checkout-top">
+                <div class="checkout-title-row">
+                  <div>
+                    <p class="eyebrow" style="margin-bottom: 4px;">Current order</p>
+                    <h2 class="checkout-title">Settle the table</h2>
+                  </div>
+
+                  <span class="bill-badge">#${getBillNumber()}</span>
+                </div>
+
+                <div class="field-grid">
+                  <div class="field">
+                    <label for="room-number">Room / table</label>
+                    <input
+                      id="room-number"
+                      value="${escapeHtml(state.room)}"
+                      placeholder="R 7 or Walk-in"
+                    />
+                  </div>
+
+                  <div class="field">
+                    <label>Business date</label>
+                    <div class="date-field">${currentDate}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="checkout-content">
+                <div class="cart">
+                  ${renderCart()}
+                </div>
+
+                <div class="totals">
+                  <div class="total-line">
+                    <span>Subtotal</span>
+                    <span>${formatMoney(totals.subtotal)}</span>
+                  </div>
+
+                  <div class="total-line">
+                    <span>Tax 11%</span>
+                    <span>${formatMoney(totals.tax)}</span>
+                  </div>
+
+                  <div class="total-line">
+                    <span>Service 10%</span>
+                    <span>${formatMoney(totals.service)}</span>
+                  </div>
+
+                  <div class="total-line grand-total">
+                    <span>Grand total</span>
+                    <span>${formatMoney(totals.grandTotal)}</span>
+                  </div>
+                </div>
+
+                <span class="section-label">Payment method</span>
+
+                <div class="payment-grid">
+                  ${PAYMENTS.map((payment) => `
+                    <button
+                      class="payment-button ${state.payment === payment.id ? "active" : ""}"
+                      data-action="payment"
+                      data-payment="${payment.id}"
+                    >
+                      <span class="payment-name">${payment.shortName}</span>
+                      <span class="payment-fee">${(payment.fee * 100).toFixed(2)}% fee</span>
+                    </button>
+                  `).join("")}
+                </div>
+
+                ${state.payment === "cash" ? `
+                  <div class="cash-box">
+                    <div class="field">
+                      <label for="cash-received">Cash received</label>
+                      <input
+                        id="cash-received"
+                        type="number"
+                        min="0"
+                        value="${escapeHtml(state.cashReceived)}"
+                        placeholder="Enter amount"
+                      />
+                    </div>
+
+                    <div class="cash-result ${cashShort ? "short" : ""}">
+                      <span>${cashShort ? "Short" : "Change"}</span>
+                      <strong>
+                        ${cashShort
+                          ? formatMoney(totals.totalPayment - totals.received)
+                          : formatMoney(totals.change)}
+                      </strong>
+                    </div>
+                  </div>
+                ` : ""}
+
+                <div class="fee-box">
+                  <span>${method.shortName} processing fee</span>
+                  <strong>
+                    ${(method.fee * 100).toFixed(2)}% · ${formatMoney(totals.feeCharge)}
+                  </strong>
+                </div>
+
+                <div class="total-line" style="margin-top: 15px;">
+                  <strong style="color: var(--muted);">Net payment</strong>
+                  <strong>${formatMoney(totals.totalPayment)}</strong>
+                </div>
+
+                <button
+                  class="complete-button"
+                  data-action="complete-sale"
+                  ${!state.cart.length || !state.room.trim() || cashShort ? "disabled" : ""}
+                >
+                  ✓ Complete sale&nbsp;&nbsp; →
+                </button>
+
+                ${state.selectedReceipt ? `
+                  <div class="receipt-actions">
+                    <p>Receipt ready · Bill #${escapeHtml(state.selectedReceipt.billNo)}</p>
+                    <button class="button cyan full" data-action="print">
+                      Print 58mm receipt
+                    </button>
+                  </div>
+                ` : ""}
+              </div>
+            </aside>
+          </div>
+
+          ${state.selectedReceipt ? `
+            <section class="receipt-section">
+              <div class="receipt-section-heading">Guest receipt preview</div>
+              ${receiptHtml(state.selectedReceipt)}
+            </section>
+          ` : ""}
+
+          <footer class="footer">
+            <span>Cinze Restaurant &amp; Hot Spring · Local-first cashier station</span>
+            <span>Data saved in this browser · ${STORAGE_KEY}</span>
+          </footer>
+        </main>
+      `;
+
+      updateClock();
+      bindEvents();
+    }
+
+    function updateClock() {
+      const clock = document.getElementById("live-clock");
+
+      if (clock) {
+        clock.textContent = new Intl.DateTimeFormat("en-GB", {
+          dateStyle: "medium",
+          timeStyle: "medium"
+        }).format(new Date());
+      }
+    }
+
+    function bindEvents() {
+      document.querySelectorAll("[data-action]").forEach((element) => {
+        element.addEventListener("click", () => {
+          const action = element.dataset.action;
+
+          if (action === "add-menu-item") {
+            const item = MENU.find((menuItem) => menuItem.id === element.dataset.id);
+            if (item) addToCart(item);
+          }
+
+          if (action === "increase") {
+            adjustQuantity(element.dataset.id, 1);
+          }
+
+          if (action === "decrease") {
+            adjustQuantity(element.dataset.id, -1);
+          }
+
+          if (action === "category") {
+            state.category = element.dataset.category;
+            render();
+          }
+
+          if (action === "toggle-custom") {
+            state.customOpen = !state.customOpen;
+            render();
+          }
+
+          if (action === "add-custom") {
+            addCustomItem();
+          }
+
+          if (action === "payment") {
+            state.payment = element.dataset.payment;
+            render();
+          }
+
+          if (action === "complete-sale") {
+            completeSale();
+          }
+
+          if (action === "export") {
+            exportReport();
+          }
+
+          if (action === "clear-history") {
+            clearTodayHistory();
+          }
+
+          if (action === "select-receipt") {
+            state.selectedReceipt = state.transactions.find(
+              (transaction) => transaction.id === element.dataset.id
+            );
+            render();
+          }
+
+          if (action === "print") {
+            window.print();
+          }
+        });
+      });
+
+      const menuSearch = document.getElementById("menu-search");
+      if (menuSearch) {
+        menuSearch.addEventListener("input", (event) => {
+          state.menuSearch = event.target.value;
+          render();
+        });
+      }
+
+      const historySearch = document.getElementById("history-search");
+      if (historySearch) {
+        historySearch.addEventListener("input", (event) => {
+          state.historySearch = event.target.value;
+          render();
+        });
+      }
+
+      const roomInput = document.getElementById("room-number");
+      if (roomInput) {
+        roomInput.addEventListener("input", (event) => {
+          state.room = event.target.value;
+        });
+      }
+
+      const cashInput = document.getElementById("cash-received");
+      if (cashInput) {
+        cashInput.addEventListener("input", (event) => {
+          state.cashReceived = event.target.value;
+          render();
+        });
+      }
+    }
+
+    render();
+
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
